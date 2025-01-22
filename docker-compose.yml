@@ -1,37 +1,90 @@
-# docker-compose.yml
+# # docker-compose.yml
+
+# version: '3.8'
+
+# services:
+#   # Redis service
+#   redis:
+#     image: redis:alpine
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - ./redis_data:/data
+
+#   # Celery worker service
+#   celery_worker:
+#     build: .
+#     container_name: celery_worker
+#     command: celery -A celeryconfig.app worker --loglevel=info
+#     depends_on:
+#       - redis
+#     environment:
+#       - CELERY_BROKER=redis://redis:6379/0
+
+#   # Producer (could be a separate service or just a task)
+#   producer:
+#     build: .
+#     container_name: celery_producer
+#     command: celery -A celeryconfig.app worker --loglevel=info
+#     depends_on:
+#       - redis
+
+#   # The default is to run Celery tasks, so there is no need for a web service
+
+# volumes:
+#   redis_data:
+#     driver: local
+
+
+
 
 version: '3.8'
 
 services:
-  # Redis service
   redis:
-    image: redis:alpine
-    container_name: redis
+    image: "redis:alpine"
+    container_name: "redis"
     ports:
       - "6379:6379"
-    volumes:
-      - ./redis_data:/data
 
-  # Celery worker service
-  celery_worker:
-    build: .
-    container_name: celery_worker
-    command: celery -A celeryconfig.app worker --loglevel=info
-    depends_on:
-      - redis
+  db:
+    image: "postgres:alpine"
+    container_name: "db"
     environment:
-      - CELERY_BROKER=redis://redis:6379/0
-
-  # Producer (could be a separate service or just a task)
-  producer:
-    build: .
-    container_name: celery_producer
-    command: celery -A celeryconfig.app worker --loglevel=info
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: saiful
+      POSTGRES_DB: msg_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "celery_worker"
+    environment:
+    - PYTHONPATH=/app
     depends_on:
       - redis
+      - db
+    volumes:
+      - ./app:/app
+    command: ["celery", "-A", "celeryconfig.app", "worker", "--loglevel=info"]
 
-  # The default is to run Celery tasks, so there is no need for a web service
-
-volumes:
-  redis_data:
-    driver: local
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "fastapi"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+    - PYTHONPATH=/app
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
