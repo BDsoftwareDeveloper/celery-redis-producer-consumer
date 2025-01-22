@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+.env/
+
+# Docker
+*.log
+docker-compose.override.yml
+.docker/
+
+# Celery
+celerybeat-schedule
+*.pid
+
+# Redis
+redis_dump.rdb
+
+# IDE Specific
+.idea/
+.vscode/
+*.swp
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+
+# Others
+*.bak
+*.tmp
